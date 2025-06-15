@@ -1,21 +1,49 @@
 package main
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/chirpy/internal/database"
+	"github.com/joho/godotenv"
+	// Underscore tells Go that you are importing it for its side effects not because you need to use it
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	// atomic.Int32 allows to safely increment and 
 	// read an integer value across multiple goroutines
 	fileserverHits atomic.Int32
+	db *database.Queries
 }
 
 func main() {
-	mux := http.NewServeMux()
+	godotenv.Load()
+	const port = "8080"
+
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
+
+	dbConn, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Error opening database: %s", err)
+	}
+
+	dbQueries := database.New(dbConn)
 
 	// created an instance of apiConfig
-	apiCfg := &apiConfig{}
+	apiCfg := apiConfig{
+		fileserverHits: atomic.Int32{},
+		db: dbQueries,
+	}
+	
+	mux := http.NewServeMux()
+
 
 	// Serve static file users /app/ by stripping prefix
 	// before handling it to the file server
@@ -30,10 +58,11 @@ func main() {
 
 	// Struct that describes a server config
 	server := &http.Server{
-		Addr: ":8080", // listen to port 8080
+		Addr: ":" + port, // listen to port 8080
 		Handler: mux, // user custom ServeMux
 	}
 	// Start the server
 	// The main function blocks until the server is shut down
+	log.Printf("Serving on port: %s\n", port)
 	server.ListenAndServe()
 }
