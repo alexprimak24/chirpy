@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 	"sync/atomic"
-
 	"github.com/chirpy/internal/database"
 	"github.com/joho/godotenv"
+
 	// Underscore tells Go that you are importing it for its side effects not because you need to use it
 	_ "github.com/lib/pq"
 )
@@ -18,6 +18,7 @@ type apiConfig struct {
 	// read an integer value across multiple goroutines
 	fileserverHits atomic.Int32
 	db *database.Queries
+	platform string
 }
 
 func main() {
@@ -27,6 +28,11 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
+	}
+
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
 	}
 
 	dbConn, err := sql.Open("postgres", dbURL)
@@ -40,6 +46,7 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db: dbQueries,
+		platform: platform,
 	}
 	
 	mux := http.NewServeMux()
@@ -53,6 +60,7 @@ func main() {
 	// Register a different handler for the root path
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidate)
+	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
