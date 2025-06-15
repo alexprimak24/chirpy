@@ -24,9 +24,9 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer)))
 
 	// Register a different handler for the root path
-	mux.HandleFunc("GET /healthz", handlerReadiness)
-	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("POST /reset", apiCfg.resetMetricsCount)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetMetricsCount)
 
 	// Struct that describes a server config
 	server := &http.Server{
@@ -55,10 +55,12 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request){
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", "text/html")
 	count := cfg.fileserverHits.Load()
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hits: %d", count)
+	finalHtml := fmt.Sprintf("<html><body><h1>Welcome, Chirpy Admin</h1><p>Chirpy has been visited %d times!</p></body></html>",count)
+
+	w.Write([]byte(finalHtml))
 }
 
 func (cfg *apiConfig) resetMetricsCount(w http.ResponseWriter, r *http.Request){
