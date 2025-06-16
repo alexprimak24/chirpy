@@ -36,7 +36,8 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request){
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
-
+	
+	// validate sentence
 	cleaned_sentence, err := validateChirp(params.Body)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
