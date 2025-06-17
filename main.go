@@ -21,6 +21,7 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	jwtSecret string
+	polkaKey string
 }
 
 func main() {
@@ -47,6 +48,11 @@ func main() {
 		log.Fatalf("Error opening database: %s", err)
 	}
 
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY environment variable is not set")
+	}
+
 	dbQueries := database.New(dbConn)
 
 	// created an instance of apiConfig
@@ -55,6 +61,7 @@ func main() {
 		db: dbQueries,
 		platform: platform,
 		jwtSecret: jwtSecret,
+		polkaKey: polkaKey,
 	}
 	
 	mux := http.NewServeMux()
